@@ -10,7 +10,6 @@ from numpy import diff, median
 # Constants
 __FRAME_RATE__ = 44100
 
-
 #
 # Run the analysis of the file
 #
@@ -37,7 +36,7 @@ def convert_audio_to_wav(item_path):
     tempdir = tempfile.gettempdir()
     filename = hashlib.md5(item_path.encode('utf-8')).hexdigest()
     wav_path = "{dir}/{file}.wav".format(dir=tempdir, file=filename)
-    
+
     sound = AudioSegment.from_file(item_path)
     if (sound.frame_rate != __FRAME_RATE__):
         sound = sound.set_frame_rate(__FRAME_RATE__)
@@ -90,4 +89,6 @@ if __name__ == '__main__':
         print_result(True, "Audio file not found")
         sys.exit(2)
 
+    #pprint("analysis:" + file_name)
+    
     do_the_analysis(file_name)

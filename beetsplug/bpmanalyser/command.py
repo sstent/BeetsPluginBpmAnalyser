@@ -13,17 +13,20 @@ import concurrent.futures as cf
 
 from optparse import OptionParser
 from subprocess import PIPE, Popen
-
+from pprint import pprint
 from beets.library import Library as BeatsLibrary, Item
 from beets.ui import Subcommand, decargs
+from aubio import source, tempo
+from numpy import diff, median
 
+from pydub import AudioSegment
 # Module methods
 log = logging.getLogger('beets.bpmanalyser')
 
 # Constants
 __FRAME_RATE__ = 44100
 
-
+#pprint(os.environ)
 class BpmAnalyserCommand(Subcommand):
     config = None
     lib = None
@@ -103,7 +106,7 @@ class BpmAnalyserCommand(Subcommand):
         self.analyser_script_path = os.path.join(module_path, "analyser.py")
         if not os.path.isfile(self.analyser_script_path):
             raise FileNotFoundError("Analyser script not found!")
-        # log.debug("External analyser script path: {}".format(self.analyser_script_path))
+        log.debug("External analyser script path: {}".format(self.analyser_script_path))
 
         # Keep this at the end
         super(BpmAnalyserCommand, self).__init__(
@@ -184,16 +187,20 @@ class BpmAnalyserCommand(Subcommand):
     def runAnalyser(self, item: Item):
         item_path = item.get("path").decode("utf-8")
         log.debug("Analysing[{0}]...".format(item_path))
+        # Pass the current environment variables to the subprocess
+        env = os.environ.copy()
+        env["PYTHONPATH"] = ":".join(sys.path)
+
         
         proc = Popen([sys.executable, self.analyser_script_path, item_path],
-                     stdout=PIPE, stderr=PIPE)
+                     stdout=PIPE, stderr=PIPE, env=env)
         stdout, stderr = proc.communicate()
 
         # By default assume unknown error
         error = True
         message = "Unknown error!"
         bpm = 0
-        
+
         # On successful execution script should output a json
         try:
             resp = json.loads(stdout)
@@ -202,6 +209,8 @@ class BpmAnalyserCommand(Subcommand):
             bpm = resp["bpm"]
         except Exception:
             message = message + " Unparsable response."
+            #pprint(stdout)
+            #pprint(stderr)
             
         if (proc.returncode != 0 or error == True):
             log.error("Error({}): {}".format(proc.returncode, message))
