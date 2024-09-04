@@ -185,8 +185,12 @@ class BpmAnalyserCommand(Subcommand):
         item_path = item.get("path").decode("utf-8")
         log.debug("Analysing[{0}]...".format(item_path))
         
+        # Pass the current environment variables to the subprocess
+        env = os.environ.copy()
+        env["PYTHONPATH"] = ":".join(sys.path)
+        
         proc = Popen([sys.executable, self.analyser_script_path, item_path],
-                     stdout=PIPE, stderr=PIPE)
+                     stdout=PIPE, stderr=PIPE, env=env)
         stdout, stderr = proc.communicate()
 
         # By default assume unknown error
